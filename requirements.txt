@@ -1,0 +1,13 @@
+Flask
+flask-cors
+gunicorn
+langchain-groq
+langchain
+langchain-community
+pypdf
+chromadb
+sentence-transformers
+torch
+python-dotenv
+Flask-SQLAlchemy
+langchain-huggingface

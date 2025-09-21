@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WellMind Assistant - Mental Health Chatbot</title>
+    <style>
+        /* --- General Body Styles --- */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #e8f5f3 0%, #f0f9ff 100%);
+        }
+
+        /* --- NEW: Chat Toggle Button Styles --- */
+        .chat-toggle-button {
+            position: fixed;
+            bottom: 25px;
+            right: 25px;
+            width: 60px;
+            height: 60px;
+            background: linear-gradient(135deg, #4fd1c7 0%, #38b2ac 100%);
+            border: none;
+            border-radius: 50%;
+            color: white;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            z-index: 1000;
+            transition: transform 0.2s ease;
+        }
+
+        .chat-toggle-button:hover {
+            transform: scale(1.1);
+        }
+
+        /* --- Chat Container Styles --- */
+        .chat-container {
+            position: fixed;
+            bottom: 100px;
+            right: 25px;
+            width: 100%;
+            max-width: 400px; /* Reduced width slightly */
+            height: 550px;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            z-index: 999;
+            
+            /* --- NEW: Hide/Show Animation --- */
+            opacity: 0;
+            transform: translateY(20px);
+            pointer-events: none;
+            transition: opacity 0.3s ease, transform 0.3s ease;
+        }
+
+        /* --- NEW: Style for when chat is open --- */
+        .chat-container.open {
+            opacity: 1;
+            transform: translateY(0);
+            pointer-events: auto;
+        }
+        
+        .chat-header {
+            background: linear-gradient(135deg, #4fd1c7 0%, #38b2ac 100%);
+            color: white;
+            padding: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between; /* Adjusted for close button */
+            gap: 12px;
+        }
+
+        .header-content {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .chat-icon {
+            width: 32px;
+            height: 32px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+        }
+
+        .chat-title {
+            font-size: 18px;
+            font-weight: 600;
+        }
+        
+        /* --- NEW: Close Button --- */
+        .chat-close-button {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 24px;
+            cursor: pointer;
+            opacity: 0.8;
+            transition: opacity 0.2s;
+        }
+
+        .chat-close-button:hover {
+            opacity: 1;
+        }
+
+        /* --- (All other previous CSS styles for messages, inputs, etc., remain the same) --- */
+        .chat-messages { flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 16px; background: #fafafa; }
+        .message { display: flex; max-width: 80%; animation: fadeIn 0.3s ease-in; }
+        .message.user { align-self: flex-end; flex-direction: row-reverse; }
+        .message.bot { align-self: flex-start; }
+        .message-bubble { padding: 12px 16px; border-radius: 18px; word-wrap: break-word; line-height: 1.4; }
+        .message.user .message-bubble { background: linear-gradient(135deg, #48cc6c 0%, #38a169 100%); color: white; border-bottom-right-radius: 6px; }
+        .message.bot .message-bubble { background: #e2e8f0; color: #2d3748; border-bottom-left-radius: 6px; }
+        .chat-input-container { padding: 20px; background: white; border-top: 1px solid #e2e8f0; display: flex; gap: 12px; align-items: center; }
+        .chat-input { flex: 1; padding: 12px 16px; border: 2px solid #e2e8f0; border-radius: 25px; outline: none; font-size: 14px; transition: border-color 0.2s ease; }
+        .chat-input:focus { border-color: #4fd1c7; }
+        .send-button { width: 44px; height: 44px; background: linear-gradient(135deg, #4fd1c7 0%, #38b2ac 100%); border: none; border-radius: 50%; color: white; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: transform 0.2s ease, box-shadow 0.2s ease; }
+        .send-button:hover { transform: scale(1.05); box-shadow: 0 4px 12px rgba(79, 209, 199, 0.3); }
+        .send-button:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+        .typing-indicator { display: flex; align-items: center; gap: 4px; padding: 12px 16px; background: #e2e8f0; border-radius: 18px; border-bottom-left-radius: 6px; color: #718096; font-style: italic; }
+        .typing-dots { display: flex; gap: 2px; }
+        .typing-dot { width: 6px; height: 6px; background: #718096; border-radius: 50%; animation: typing 1.4s infinite ease-in-out; }
+        .typing-dot:nth-child(1) { animation-delay: -0.32s; }
+        .typing-dot:nth-child(2) { animation-delay: -0.16s; }
+        @keyframes typing { 0%, 80%, 100% { transform: scale(0.8); opacity: 0.5; } 40% { transform: scale(1); opacity: 1; } }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .error-message { background: #fed7d7 !important; color: #c53030 !important; border: 1px solid #feb2b2; }
+
+    </style>
+</head>
+<body>
+
+    <button class="chat-toggle-button" id="chatToggleButton">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+        </svg>
+    </button>
+
+    <div class="chat-container" id="chatContainer">
+        <div class="chat-header">
+            <div class="header-content">
+                <div class="chat-icon">💬</div>
+                <div class="chat-title">WellMind Assistant</div>
+            </div>
+            <button class="chat-close-button" id="chatCloseButton">&times;</button>
+        </div>
+
+        <div class="chat-messages" id="chatMessages">
+            <div class="message bot">
+                <div class="message-bubble">
+                    Hello! I'm WellMind Assistant, here to support your mental wellness journey. How can I help you today?
+                </div>
+            </div>
+        </div>
+
+        <div class="chat-input-container">
+            <input type="text" class="chat-input" id="chatInput" placeholder="Type your message..." maxlength="500">
+            <button class="send-button" id="sendButton">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="22" y1="2" x2="11" y2="13"></line>
+                    <polygon points="22,2 15,22 11,13 2,9"></polygon>
+                </svg>
+            </button>
+        </div>
+    </div>
+
+    <script>
+    class ChatBot {
+        constructor() {
+            this.chatMessages = document.getElementById('chatMessages');
+            this.chatInput = document.getElementById('chatInput');
+            this.sendButton = document.getElementById('sendButton');
+            
+            // --- UPDATED: Use relative URLs for both API and History ---
+            this.API_URL = '/chat';
+            this.HISTORY_URL = '/history';
+            
+            this.init();
+        }
+
+        init() {
+            this.sendButton.addEventListener('click', () => this.sendMessage());
+            this.chatInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    this.sendMessage();
+                }
+            });
+            this.chatInput.focus();
+            // --- NEW: Load history when the chatbot starts ---
+            this.loadHistory();
+        }
+
+        // --- NEW: Function to load and display chat history ---
+        async loadHistory() {
+            try {
+                const response = await fetch(this.HISTORY_URL);
+                const history = await response.json();
+                
+                if (history.length === 0) {
+                    // Display a welcome message if there's no history
+                    this.addMessage("Hello! I'm WellMind Assistant. How can I help you today?", 'bot');
+                } else {
+                    // Clear any existing messages and render the history
+                    this.chatMessages.innerHTML = '';
+                    history.forEach(msg => this.addMessage(msg.text, msg.sender));
+                }
+            } catch (error) {
+                console.error('Failed to load history:', error);
+                this.addMessage('Could not load previous conversation.', 'bot', true);
+            }
+        }
+        
+        async sendMessage() {
+            const message = this.chatInput.value.trim();
+            if (!message) return;
+            this.setInputState(false);
+            this.addMessage(message, 'user');
+            this.chatInput.value = '';
+            const typingIndicator = this.showTypINGIndicator();
+            try {
+                const response = await this.callAPI(message);
+                this.removeTypingIndicator(typingIndicator);
+                this.addMessage(response, 'bot');
+            } catch (error) {
+                console.error('Chat API Error:', error);
+                this.removeTypingIndicator(typingIndicator);
+                this.addMessage('⚠️ Connection error. Please try again.', 'bot', true);
+            } finally {
+                this.setInputState(true);
+                this.chatInput.focus();
+            }
+        }
+
+        async callAPI(message) {
+            const response = await fetch(this.API_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ query: message })
+            });
+            if (!response.ok) { throw new Error(`HTTP error! status: ${response.status}`); }
+            const data = await response.json();
+            return data.answer || 'I apologize, but I couldn\'t process your request right now.';
+        }
+
+        addMessage(text, sender, isError = false) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${sender}`;
+            const bubbleDiv = document.createElement('div');
+            bubbleDiv.className = `message-bubble ${isError ? 'error-message' : ''}`;
+            bubbleDiv.textContent = text;
+            messageDiv.appendChild(bubbleDiv);
+            this.chatMessages.appendChild(messageDiv);
+            this.scrollToBottom();
+        }
+        
+        showTypingIndicator() {
+            const typingDiv = document.createElement('div');
+            typingDiv.className = 'message bot';
+            typingDiv.innerHTML = `<div class="typing-indicator"><span>WellMind is typing</span><div class="typing-dots"><div class="typing-dot"></div><div class="typing-dot"></div><div class.typing-dot"></div></div></div>`;
+            this.chatMessages.appendChild(typingDiv);
+            this.scrollToBottom();
+            return typingDiv;
+        }
+
+        removeTypingIndicator(indicator) {
+            if (indicator && indicator.parentNode) {
+                indicator.parentNode.removeChild(indicator);
+            }
+        }
+
+        setInputState(enabled) {
+            this.chatInput.disabled = !enabled;
+            this.sendButton.disabled = !enabled;
+        }
+
+        scrollToBottom() {
+            setTimeout(() => { this.chatMessages.scrollTop = this.chatMessages.scrollHeight; }, 100);
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        const chatBot = new ChatBot();
+        const chatContainer = document.getElementById('chatContainer');
+        const toggleButton = document.getElementById('chatToggleButton');
+        const closeButton = document.getElementById('chatCloseButton');
+
+        toggleButton.addEventListener('click', () => {
+            chatContainer.classList.toggle('open');
+            if (chatContainer.classList.contains('open')) {
+                chatBot.chatInput.focus();
+                chatBot.scrollToBottom();
+            }
+        });
+        
+        closeButton.addEventListener('click', () => {
+            chatContainer.classList.remove('open');
+        });
+    });
+</script>
+</body>
+</html>
