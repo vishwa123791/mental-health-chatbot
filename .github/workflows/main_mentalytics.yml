@@ -58,4 +58,4 @@ jobs:
         with:
           app-name: 'Mentalytics'
           slot-name: 'Production'
-          publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_5595FCC91E1D4CBD80B29E07530BD1CE }}
+          publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_BEE160405BB74FD4AF5BA779BB70A895 }}
